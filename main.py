@@ -21,24 +21,27 @@ def get_latest_jobs(payload: dict = None):
         response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, "html.parser")
         
-        # inthiswork.com 메인 페이지의 글 링크 항목 추출
-        # 보통 h2/h3 태그 내의 a 태그 또는 article 태그 내의 a 태그에 링크가 있습니다.
-        articles = soup.find_all("article")
+        # inthiswork.com의 실제 공고 카드 클래스 선택
+        cards = soup.select(".wpgb-card")
         
-        for article in articles[:5]:  # 상위 5개 추출
-            a_tag = article.find("a")
-            if not a_tag:
+        for card in cards[:5]:  # 상위 5개 공고 추출
+            # 공고 제목 및 링크 태그 추출
+            title_tag = card.select_one(".wpgb-block-1, .entry-title, h2, h3, a")
+            link_tag = card.select_one("a[href]")
+            
+            if not link_tag:
                 continue
                 
-            title = a_tag.get_text(strip=True)
-            link = a_tag.get("href", url)
+            title = title_tag.get_text(strip=True) if title_tag else "채용 공고"
+            link = link_tag.get("href", url)
             
-            # 제목 길이 제한 및 정리
-            if len(title) > 40:
-                title = title[:37] + "..."
+            # 제목 정리 및 글자 수 제한
+            clean_title = title.replace("\n", " ").strip()
+            if len(clean_title) > 40:
+                clean_title = clean_title[:37] + "..."
                 
             items.append({
-                "title": title if title else "채용 공고",
+                "title": clean_title if clean_title else "채용 공고",
                 "description": "IN THIS WORK 최신 채용 정보",
                 "buttons": [
                     {
@@ -52,15 +55,15 @@ def get_latest_jobs(payload: dict = None):
     except Exception as e:
         print(f"Error fetching data: {e}")
 
-    # 크롤링 실패나 개수 부족 시 기본 예외 응답 처리
+    # 크롤링 실패 시 기본 예외 응답 처리
     if not items:
         items.append({
-            "title": "최신 채용 공고를 불러왔습니다.",
-            "description": "아래 버튼을 눌러 웹사이트에서 바로 확인하세요.",
+            "title": "최신 채용 공고 바로가기",
+            "description": "아래 버튼을 눌러 인디스워크 웹사이트에서 바로 확인하세요.",
             "buttons": [
                 {
                     "action": "webLink",
-                    "label": "채용 공고 바로가기 🔗",
+                    "label": "채용 공고 보기 🔗",
                     "webLinkUrl": "https://inthiswork.com"
                 }
             ]
