@@ -12,21 +12,37 @@ def get_latest_jobs(payload: dict):
     feed_url = "https://inthiswork.com/feed"
     feed = feedparser.parse(feed_url)
     
-    job_items = []
-    for entry in feed.entries[:3]:
-        title = entry.title
-        link = entry.link
-        job_items.append(f"📌 {title}\n🔗 {link}")
+    # 카카오톡에 보여줄 카드 목록
+    items = []
     
-    response_text = "📢 [IN THIS WORK] 최신 채용 공고입니다:\n\n" + "\n\n".join(job_items)
-
+    # 최신 공고 상위 5개 가져오기
+    for entry in feed.entries[:5]:
+        title = entry.get('title', '채용 공고')
+        link = entry.get('link', 'https://inthiswork.com')
+        
+        # 각 공고를 텍스트 카드(TextCard) 형태로 구성
+        card = {
+            "title": title[:50],  # 제목 글자수 제한 예방
+            "description": "IN THIS WORK 실시간 채용 정보",
+            "buttons": [
+                {
+                    "action": "webLink",
+                    "label": "공고 자세히 보기 🔗",
+                    "webLinkUrl": link
+                }
+            ]
+        }
+        items.append(card)
+    
+    # 여러 카드를 Carousel(캐러셀) 형태로 응답
     return {
         "version": "2.0",
         "template": {
             "outputs": [
                 {
-                    "simpleText": {
-                        "text": response_text
+                    "carousel": {
+                        "type": "textCard",
+                        "items": items
                     }
                 }
             ]
